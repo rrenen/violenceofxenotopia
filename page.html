@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title></title>
+  <style>
+  @font-face {
+    font-family: 'EurostileNextExtBold';
+    src: url('fonts/eurostile-bold-extended.otf') format('opentype');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  :root {
+    --font-sans: 'EurostileNextExtBold', "Helvetica Neue", "Hiragino Sans", sans-serif;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    margin: 40px auto;
+    max-width: 700px;
+    line-height: 1.6;
+    color: #222;
+  }
+
+  button, input, textarea, select { font-family: inherit; }
+
+  h1 {
+    font-size: 2em;
+    border-bottom: 2px solid #ccc;
+    padding-bottom: 0.3em;
+  }
+
+  /* === スライダー === */
+  #sliderContainer {
+    position: relative;
+    width: 100%;
+    max-width: 700px;
+    overflow: hidden;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    background: #000;
+  }
+
+  #imageSlider {
+    display: flex;
+    transition: transform 0.4s ease;
+  }
+
+  .slide-img {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+    background-color: #000;
+    flex-shrink: 0;
+  }
+
+  .nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(30,30,30,0.6);
+    color: white;
+    border: none;
+    font-size: 1.8em;
+    cursor: pointer;
+    padding: 0.2em 0.5em;
+    border-radius: 50%;
+  }
+  .nav-btn:hover { background: rgba(30,30,30,0.8); }
+
+  #prevBtn { left: 10px; }
+  #nextBtn { right: 10px; }
+
+  /* === 本文 === */
+  #content {
+    border: 1px solid #ccc;
+    padding: 1em;
+    border-radius: 6px;
+    min-height: 200px;
+  }
+
+  #content img {
+    display: block;
+    margin: 15px auto;
+    max-width: 90%;
+    height: auto;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 0 6px rgba(0,0,0,0.2);
+  }
+
+  button {
+    margin-top: 1em;
+    padding: 0.4em 1em;
+    border: none;
+    background: #111;
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.25s;
+  }
+  button:hover { background: #7a1818; }
+
+  .delete-btn {
+    background: #a33;
+    margin-left: 10px;
+  }
+  .delete-btn:hover { background: #822; }
+  </style>
+</head>
+<body>
+  <h1 id="pageTitle"></h1>
+
+  <div id="sliderContainer" style="display:none;">
+    <div id="imageSlider"></div>
+    <button id="prevBtn" class="nav-btn">◀</button>
+    <button id="nextBtn" class="nav-btn">▶</button>
+  </div>
+
+  <div id="editControls" style="display:none;">
+    <input type="file" id="imageInput" accept="image/*" multiple>
+    <button onclick="addImagePaths()">🖼 Add Images (Slider)</button>
+    <button onclick="insertInlineImage()">📎 Insert Image in Text</button>
+    <button onclick="removeAllImages()">❌ Remove All Images</button>
+  </div>
+
+  <div id="content" contenteditable="false">
+    <p>Write your text here.</p>
+  </div>
+
+  <div id="saveControls" style="display:none;">
+    <button onclick="saveContent()">💾 Save</button>
+    <button class="delete-btn" onclick="deleteThisPage()">🗑 Delete This Page</button>
+  </div>
+
+  <p><a href="index.html">← Back to Home</a></p>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    let title = params.get("page"); // ← タイトル変更で書き換えるので let
+
+    const pageTitle = document.getElementById("pageTitle");
+    const content = document.getElementById("content");
+    const imageInput = document.getElementById("imageInput");
+    const sliderContainer = document.getElementById("sliderContainer");
+    const imageSlider = document.getElementById("imageSlider");
+    const prevBtn = document.getElementById("prevBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const editControls = document.getElementById("editControls");
+    const saveControls = document.getElementById("saveControls");
+
+    const pages = JSON.parse(localStorage.getItem("wikiPages") || "[]");
+    const isEditMode = localStorage.getItem("wikiEditMode") === "on";
+
+    let currentIndex = 0;
+    let images = [];
+
+    // === ページ読み込み ===
+    if (!title) {
+      pageTitle.textContent = "Page not found.";
+    } else {
+      document.title = title;
+      pageTitle.textContent = title;
+
+      const saved = localStorage.getItem("wikiPage:" + title);
+      const savedImages = JSON.parse(localStorage.getItem("wikiPageImages:" + title) || "[]");
+
+      if (saved) content.innerHTML = saved;
+
+      if (savedImages.length > 0) {
+        images = savedImages;                         // 例: ["pic1.jpg","pic2.png"]
+        updateSlider();
+        sliderContainer.style.display = "block";
+        // ✅ サムネイル未設定なら補完
+        const thumb = localStorage.getItem("wikiPageImage:" + title);
+        if (!thumb) {
+          localStorage.setItem("wikiPageImage:" + title, "images/" + images[0]);
+        }
+      }
+    }
+
+    // === 編集モード制御 ===
+    if (isEditMode) enableEditMode();
+    else disableEditMode();
+
+    function enableEditMode() {
+      pageTitle.contentEditable = true;  // ✅ タイトル編集可
+      content.contentEditable = true;
+      editControls.style.display = "block";
+      saveControls.style.display = "block";
+
+      // タイトル変更→キー/一覧を移し替え
+      pageTitle.addEventListener("blur", () => {
+        const newTitle = pageTitle.textContent.trim();
+        if (!newTitle || newTitle === title) return;
+
+        if (pages.some(p => p.title === newTitle)) {
+          alert("A page with this title already exists.");
+          pageTitle.textContent = title;
+          return;
+        }
+
+        const contentData = localStorage.getItem("wikiPage:" + title);
+        const imageListData = localStorage.getItem("wikiPageImages:" + title);
+        const thumbData = localStorage.getItem("wikiPageImage:" + title);
+
+        if (contentData) {
+          localStorage.setItem("wikiPage:" + newTitle, contentData);
+          localStorage.removeItem("wikiPage:" + title);
+        }
+        if (imageListData) {
+          localStorage.setItem("wikiPageImages:" + newTitle, imageListData);
+          localStorage.removeItem("wikiPageImages:" + title);
+        }
+        if (thumbData) {
+          localStorage.setItem("wikiPageImage:" + newTitle, thumbData);
+          localStorage.removeItem("wikiPageImage:" + title);
+        }
+
+        const pageEntry = pages.find(p => p.title === title);
+        if (pageEntry) pageEntry.title = newTitle;
+        localStorage.setItem("wikiPages", JSON.stringify(pages));
+
+        title = newTitle;
+        document.title = newTitle;
+        alert(`Title changed to "${newTitle}"!`);
+      });
+    }
+
+    function disableEditMode() {
+      pageTitle.contentEditable = false;
+      content.contentEditable = false;
+      editControls.style.display = "none";
+      saveControls.style.display = "none";
+    }
+
+    // === スライダー更新 ===
+    function updateSlider() {
+      imageSlider.innerHTML = "";
+      images.forEach(name => {
+        const img = document.createElement("img");
+        img.src = "images/" + name;   // ← ファイル参照
+        img.className = "slide-img";
+        imageSlider.appendChild(img);
+      });
+      moveToSlide(currentIndex);
+    }
+
+    function moveToSlide(index) {
+      if (images.length === 0) return;
+      if (index < 0) index = images.length - 1;
+      if (index >= images.length) index = 0;
+      currentIndex = index;
+      imageSlider.style.transform = `translateX(-${index * 100}%)`;
+    }
+
+    prevBtn.onclick = () => moveToSlide(currentIndex - 1);
+    nextBtn.onclick = () => moveToSlide(currentIndex + 1);
+
+    // === 画像追加（スライダー）=== 
+    function addImagePaths() {
+      if (!isEditMode) return alert("Log in to edit this page.");
+      const files = Array.from(imageInput.files);
+      if (!files.length) return;
+
+      const names = files.map(f => f.name); // 例: ["a.jpg","b.png"]
+      images = [...images, ...names];
+      localStorage.setItem("wikiPageImages:" + title, JSON.stringify(images));
+
+      // ✅ サムネイルを必ず更新（1枚目）
+      localStorage.setItem("wikiPageImage:" + title, "images/" + images[0]);
+
+      updateSlider();
+      sliderContainer.style.display = "block";
+      alert("Images added! Make sure your files are placed in the 'images' folder.");
+    }
+
+    // === 本文に画像挿入（初回ならサムネを自動設定）===
+    function insertInlineImage() {
+      if (!isEditMode) return alert("Log in to edit this page.");
+      const fileInput = document.createElement("input");
+      fileInput.type = "file";
+      fileInput.accept = "image/*";
+      fileInput.onchange = e => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const img = document.createElement("img");
+        img.src = "images/" + file.name; // 置く場所は /images
+        img.style.maxWidth = "90%";
+        img.style.display = "block";
+        img.style.margin = "15px auto";
+
+        const range = window.getSelection().getRangeAt(0);
+        range.insertNode(img);
+
+        // 画像リストにも追加（重複は簡易的に許容）
+        const current = JSON.parse(localStorage.getItem("wikiPageImages:" + title) || "[]");
+        if (!current.includes(file.name)) {
+          current.push(file.name);
+          localStorage.setItem("wikiPageImages:" + title, JSON.stringify(current));
+          images = current;
+          updateSlider();
+          sliderContainer.style.display = "block";
+        }
+
+        // ✅ サムネイル未設定なら設定
+        const thumb = localStorage.getItem("wikiPageImage:" + title);
+        if (!thumb) {
+          localStorage.setItem("wikiPageImage:" + title, "images/" + file.name);
+        }
+
+        saveContent();
+        alert("Image inserted! Make sure the file exists in the 'images' folder.");
+      };
+      fileInput.click();
+    }
+
+    // === 全画像削除（サムネも消す）===
+    function removeAllImages() {
+      if (!isEditMode) return alert("Log in to edit this page.");
+      if (!confirm("Remove all images?")) return;
+      images = [];
+      imageSlider.innerHTML = "";
+      sliderContainer.style.display = "none";
+      localStorage.removeItem("wikiPageImages:" + title);
+      localStorage.removeItem("wikiPageImage:" + title); // ✅ サムネイルも削除
+    }
+
+    // === 内容保存 ===
+    function saveContent() {
+      if (!isEditMode) return alert("Log in to edit this page.");
+      localStorage.setItem("wikiPage:" + title, content.innerHTML);
+      alert("Saved!");
+    }
+
+    // === ページ削除 ===
+    function deleteThisPage() {
+      if (!isEditMode) return alert("Log in to edit this page.");
+      if (!confirm(`Delete the page "${title}"?`)) return;
+      const filtered = pages.filter(p => p.title !== title);
+      localStorage.setItem("wikiPages", JSON.stringify(filtered));
+      localStorage.removeItem("wikiPage:" + title);
+      localStorage.removeItem("wikiPageImages:" + title);
+      localStorage.removeItem("wikiPageImage:" + title); // ✅ 念のため
+      alert(`Page "${title}" deleted.`);
+      window.location.href = "index.html";
+    }
+  </script>
+</body>
+</html>
