@@ -1,123 +1,222 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>V.O.X | Page Editor</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <title></title>
 
-  <!-- Cloudinary Upload Widget -->
+  <!-- Cloudinary -->
   <script src="https://widget.cloudinary.com/v2.0/global/all.js"></script>
 
   <style>
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-      background: #0f0f0f;
-      color: #f5f5f5;
-      padding: 24px;
-    }
+  @font-face {
+    font-family: 'EurostileNextExtBold';
+    src: url('fonts/eurostile-bold-extended.otf') format('opentype');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+  }
 
-    h1 {
-      font-size: 24px;
-      margin-bottom: 16px;
-    }
+  :root {
+    --font-sans: 'EurostileNextExtBold', "Helvetica Neue", "Hiragino Sans", sans-serif;
+  }
 
-    input, textarea, button {
-      width: 100%;
-      margin-bottom: 12px;
-      padding: 10px;
-      background: #1a1a1a;
-      color: #fff;
-      border: 1px solid #333;
-      border-radius: 6px;
-    }
+  body {
+    font-family: var(--font-sans);
+    margin: 40px auto;
+    max-width: 700px;
+    line-height: 1.6;
+    color: #222;
+  }
 
-    textarea {
-      min-height: 200px;
-      resize: vertical;
-    }
+  button, input, textarea { font-family: inherit; }
 
-    button {
-      cursor: pointer;
-      background: #fff;
-      color: #000;
-      font-weight: bold;
-    }
+  h1 {
+    font-size: 2em;
+    border-bottom: 2px solid #ccc;
+    padding-bottom: 0.3em;
+  }
 
-    .preview {
-      margin-top: 24px;
-      padding-top: 24px;
-      border-top: 1px solid #333;
-    }
+  #sliderContainer {
+    position: relative;
+    overflow: hidden;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    background: #000;
+    display: none;
+  }
 
-    .preview img {
-      max-width: 100%;
-      margin: 12px 0;
-    }
+  #imageSlider {
+    display: flex;
+    transition: transform 0.4s ease;
+  }
+
+  .slide-img {
+    width: 100%;
+    object-fit: contain;
+    background: #000;
+    flex-shrink: 0;
+  }
+
+  .nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(30,30,30,0.6);
+    color: white;
+    border: none;
+    font-size: 1.8em;
+    cursor: pointer;
+    padding: 0.2em 0.5em;
+    border-radius: 50%;
+  }
+
+  #prevBtn { left: 10px; }
+  #nextBtn { right: 10px; }
+
+  #content {
+    border: 1px solid #ccc;
+    padding: 1em;
+    border-radius: 6px;
+    min-height: 200px;
+  }
+
+  #content img {
+    display: block;
+    margin: 15px auto;
+    max-width: 90%;
+    border-radius: 8px;
+  }
+
+  button {
+    margin-top: 1em;
+    padding: 0.4em 1em;
+    background: #111;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+  }
   </style>
 </head>
+
 <body>
+<h1 id="pageTitle"></h1>
 
-  <h1>V.O.X 記事エディター</h1>
+<div id="sliderContainer">
+  <div id="imageSlider"></div>
+  <button id="prevBtn" class="nav-btn">◀</button>
+  <button id="nextBtn" class="nav-btn">▶</button>
+</div>
 
-  <input id="titleInput" placeholder="記事タイトル" />
+<div id="editControls" style="display:none;">
+  <button onclick="addImagesToSlider()">🖼 Add Images (Slider)</button>
+  <button onclick="insertInlineImage()">📎 Insert Image in Text</button>
+</div>
 
-  <textarea id="contentInput" placeholder="本文（改行OK）"></textarea>
+<div id="content" contenteditable="false">
+  <p>Write your text here.</p>
+</div>
 
-  <button onclick="openUploader()">画像を追加</button>
-  <button onclick="saveArticle()">記事を保存</button>
+<div id="saveControls" style="display:none;">
+  <button onclick="saveContent()">💾 Save</button>
+</div>
 
-  <div class="preview" id="preview"></div>
+<p><a href="index.html">← Back</a></p>
 
-  <script>
-    const cloudName = "dmnwfksrm";
+<script>
+const cloudName = "dmnwfksrm";
+const uploadPreset = "unsigned"; // ← Cloudinaryで作ったpreset名
 
-    function openUploader() {
-      cloudinary.openUploadWidget(
-        {
-          cloudName: cloudName,
-          uploadPreset: "unsigned",
-          sources: ["local", "camera"],
-          multiple: false,
-          folder: "vox",
-          resourceType: "image",
-        },
-        (error, result) => {
-          if (!error && result && result.event === "success") {
-            const imageUrl = result.info.secure_url;
-            const textarea = document.getElementById("contentInput");
-            textarea.value += `\n\n<img src="${imageUrl}" />\n\n`;
-          }
-        }
-      );
+const params = new URLSearchParams(location.search);
+let title = params.get("page");
+
+const pageTitle = document.getElementById("pageTitle");
+const content = document.getElementById("content");
+const slider = document.getElementById("imageSlider");
+const sliderContainer = document.getElementById("sliderContainer");
+
+const isEditMode = localStorage.getItem("wikiEditMode") === "on";
+let images = [];
+let index = 0;
+
+/* ===== load ===== */
+if (title) {
+  pageTitle.textContent = title;
+  document.title = title;
+
+  const saved = localStorage.getItem("wikiPage:" + title);
+  if (saved) content.innerHTML = saved;
+
+  images = JSON.parse(localStorage.getItem("wikiPageImages:" + title) || "[]");
+  if (images.length) renderSlider();
+}
+
+if (isEditMode) {
+  content.contentEditable = true;
+  pageTitle.contentEditable = true;
+  editControls.style.display = "block";
+  saveControls.style.display = "block";
+}
+
+/* ===== slider ===== */
+function renderSlider() {
+  slider.innerHTML = "";
+  images.forEach(url => {
+    const img = document.createElement("img");
+    img.src = url;
+    img.className = "slide-img";
+    slider.appendChild(img);
+  });
+  sliderContainer.style.display = "block";
+  move(0);
+}
+
+function move(n) {
+  index = (n + images.length) % images.length;
+  slider.style.transform = `translateX(-${index * 100}%)`;
+}
+
+prevBtn.onclick = () => move(index - 1);
+nextBtn.onclick = () => move(index + 1);
+
+/* ===== Cloudinary ===== */
+function openUploader(callback, multiple=false) {
+  cloudinary.openUploadWidget({
+    cloudName,
+    uploadPreset,
+    multiple,
+    folder: "vox"
+  }, (err, res) => {
+    if (!err && res.event === "success") {
+      callback(res.info.secure_url);
     }
+  });
+}
 
-    function saveArticle() {
-      const title = document.getElementById("titleInput").value;
-      const content = document.getElementById("contentInput").value;
+/* slider images */
+function addImagesToSlider() {
+  openUploader(url => {
+    images.push(url);
+    localStorage.setItem("wikiPageImages:" + title, JSON.stringify(images));
+    renderSlider();
+  }, true);
+}
 
-      const article = {
-        id: Date.now(),
-        title,
-        content,
-        createdAt: new Date().toISOString()
-      };
+/* inline image */
+function insertInlineImage() {
+  openUploader(url => {
+    const img = document.createElement("img");
+    img.src = url;
+    window.getSelection().getRangeAt(0).insertNode(img);
+    saveContent();
+  });
+}
 
-      const articles = JSON.parse(localStorage.getItem("vox_articles") || "[]");
-      articles.unshift(article);
-      localStorage.setItem("vox_articles", JSON.stringify(articles));
-
-      renderPreview(article);
-      alert("保存しました（ブラウザ保存）");
-    }
-
-    function renderPreview(article) {
-      const preview = document.getElementById("preview");
-      preview.innerHTML = `
-        <h2>${article.title}</h2>
-        <div>${article.content}</div>
-      `;
-    }
-  </script>
-
+/* save */
+function saveContent() {
+  localStorage.setItem("wikiPage:" + title, content.innerHTML);
+  alert("Saved");
+}
+</script>
 </body>
 </html>
