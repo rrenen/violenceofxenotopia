@@ -24,12 +24,6 @@ body {
 
 h1 {
   border-bottom: 2px solid #ccc;
-  outline: none;
-}
-
-h1[contenteditable="true"] {
-  cursor: text;
-  background: #f7f7f7;
 }
 
 #sliderContainer {
@@ -55,17 +49,6 @@ h1[contenteditable="true"] {
   width: 100%;
 }
 
-.deleteMediaBtn {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: rgba(0,0,0,.6);
-  color: white;
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
-}
-
 .nav-btn {
   position: absolute;
   top: 50%;
@@ -86,11 +69,6 @@ h1[contenteditable="true"] {
   display: block;
   margin: 15px auto;
   max-width: 90%;
-  cursor: pointer;
-}
-
-button {
-  margin-top: 1em;
 }
 </style>
 </head>
@@ -105,54 +83,42 @@ button {
   <button id="nextBtn" class="nav-btn">▶</button>
 </div>
 
-<div id="editControls" style="display:none;">
-  <button onclick="addMediaToSlider()">Add Media</button>
-  <button onclick="insertInlineMedia()">Insert Inline</button>
-</div>
-
-<div id="content" contenteditable="false"></div>
-
-<div id="saveControls" style="display:none;">
-  <button onclick="saveAll()">Save</button>
-  <button onclick="deletePage()">🗑 Delete Page</button>
-</div>
+<div id="content"></div>
 
 <p><a href="index.html">← Back</a></p>
 
 <script>
 const cloudName = "dmnwfksrm";
-const uploadPreset = "unsigned";
 
-let title = new URLSearchParams(location.search).get("page");
-const isEditMode = localStorage.getItem("wikiEditMode") === "on";
-
+let pages = [];
+let pageData = null;
 let media = [];
 let index = 0;
 
-pageTitle.textContent = title;
-document.title = title;
+const title = new URLSearchParams(location.search).get("page");
 
-content.innerHTML =
-  localStorage.getItem("wikiPage:" + title) || "";
+/* ===== JSON fetch ===== */
+fetch("data/pages.json")
+  .then(res => res.json())
+  .then(data => {
+    pages = data;
+    pageData = pages.find(p => p.title === title);
+    if (!pageData) return;
 
-media = JSON.parse(
-  localStorage.getItem("wikiPageMedia:" + title) || "[]"
-);
+    pageTitle.textContent = pageData.title;
+    document.title = pageData.title;
 
-if (media.length) renderSlider();
+    content.innerHTML = pageData.content || "";
 
-if (isEditMode) {
-  pageTitle.contentEditable = true;
-  content.contentEditable = true;
-  editControls.style.display = "block";
-  saveControls.style.display = "block";
-  enableInlineDelete();
-}
+    media = pageData.media || [];
+    if (media.length) renderSlider();
+  });
 
 /* ===== slider ===== */
 function renderSlider() {
   imageSlider.innerHTML = "";
-  media.forEach((url, i) => {
+
+  media.forEach(url => {
     const slide = document.createElement("div");
     slide.className = "slide";
 
@@ -163,16 +129,8 @@ function renderSlider() {
 
     el.src = url;
     if (el.tagName === "VIDEO") el.controls = true;
+
     slide.appendChild(el);
-
-    if (isEditMode) {
-      const del = document.createElement("button");
-      del.textContent = "🗑";
-      del.className = "deleteMediaBtn";
-      del.onclick = () => deleteMedia(i);
-      slide.appendChild(del);
-    }
-
     imageSlider.appendChild(slide);
   });
 
@@ -187,90 +145,6 @@ function move(n) {
 
 prevBtn.onclick = () => move(index - 1);
 nextBtn.onclick = () => move(index + 1);
-
-function deleteMedia(i) {
-  if (!confirm("Delete this media?")) return;
-  media.splice(i, 1);
-  localStorage.setItem("wikiPageMedia:" + title, JSON.stringify(media));
-  media.length ? renderSlider() : sliderContainer.style.display = "none";
-}
-
-/* ===== Cloudinary ===== */
-function openUploader(cb) {
-  cloudinary.openUploadWidget({
-    cloudName,
-    uploadPreset,
-    resourceType: "auto"
-  }, (_, res) => {
-    if (res.event === "success") cb(res.info.secure_url);
-  });
-}
-
-function addMediaToSlider() {
-  openUploader(url => {
-    media.push(url);
-    localStorage.setItem("wikiPageMedia:" + title, JSON.stringify(media));
-    renderSlider();
-  });
-}
-
-function insertInlineMedia() {
-  openUploader(url => {
-    const el = document.createElement(
-      url.match(/\.(mp4|mov|webm)$/) ? "video" : "img"
-    );
-    el.src = url;
-    if (el.tagName === "VIDEO") el.controls = true;
-    window.getSelection().getRangeAt(0).insertNode(el);
-    enableInlineDelete();
-  });
-}
-
-function enableInlineDelete() {
-  content.querySelectorAll("img, video").forEach(el => {
-    el.onclick = e => {
-      if (!isEditMode) return;
-      if (confirm("Delete this item?")) {
-        el.remove();
-      }
-      e.stopPropagation();
-    };
-  });
-}
-
-/* ===== SAVE (title + content + media) ===== */
-function saveAll() {
-  const newTitle = pageTitle.textContent.trim();
-  if (!newTitle) return alert("Title cannot be empty");
-
-  if (newTitle !== title) {
-    localStorage.setItem("wikiPage:" + newTitle, content.innerHTML);
-    localStorage.setItem("wikiPageMedia:" + newTitle, JSON.stringify(media));
-    localStorage.removeItem("wikiPage:" + title);
-    localStorage.removeItem("wikiPageMedia:" + title);
-
-    let pages = JSON.parse(localStorage.getItem("wikiPages") || "[]");
-    pages = pages.map(p =>
-      p.title === title ? { title: newTitle } : p
-    );
-    localStorage.setItem("wikiPages", JSON.stringify(pages));
-
-    title = newTitle;
-    history.replaceState(null, "", "?page=" + encodeURIComponent(title));
-  } else {
-    localStorage.setItem("wikiPage:" + title, content.innerHTML);
-    localStorage.setItem("wikiPageMedia:" + title, JSON.stringify(media));
-  }
-
-  alert("Saved");
-}
-
-function deletePage() {
-  if (!confirm("Delete this page completely?")) return;
-  localStorage.removeItem("wikiPage:" + title);
-  localStorage.removeItem("wikiPageMedia:" + title);
-  location.href = "index.html";
-}
 </script>
 
 </body>
