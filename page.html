@@ -1,113 +1,107 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title></title>
+<meta charset="UTF-8">
+<title></title>
 
-  <script src="https://widget.cloudinary.com/v2.0/global/all.js"></script>
+<script src="https://widget.cloudinary.com/v2.0/global/all.js"></script>
 
-  <style>
-    @font-face {
-      font-family: 'EurostileNextExtBold';
-      src: url('fonts/eurostile-bold-extended.otf') format('opentype');
-    }
+<style>
+@font-face {
+  font-family: 'EurostileNextExtBold';
+  src: url('fonts/eurostile-bold-extended.otf') format('opentype');
+}
 
-    :root {
-      --font-sans: 'EurostileNextExtBold', sans-serif;
-    }
+:root {
+  --font-sans: 'EurostileNextExtBold', sans-serif;
+}
 
-    body {
-      font-family: var(--font-sans);
-      margin: 40px auto;
-      max-width: 700px;
-    }
+body {
+  font-family: var(--font-sans);
+  margin: 40px auto;
+  max-width: 700px;
+}
 
-    h1 {
-      border-bottom: 2px solid #ccc;
-    }
+h1 {
+  border-bottom: 2px solid #ccc;
+}
 
-    /* ===== Slider ===== */
-    #sliderContainer {
-      position: relative;
-      overflow: hidden;
-      background: #000;
-      display: none;
-      margin-bottom: 20px;
-      border-radius: 8px;
-    }
+#sliderContainer {
+  position: relative;
+  overflow: hidden;
+  display: none;
+  background: #000;
+}
 
-    #slider {
-      display: flex;
-      transition: transform 0.4s ease;
-    }
+#imageSlider {
+  display: flex;
+  transition: transform .4s ease;
+}
 
-    .slide {
-      width: 100%;
-      flex-shrink: 0;
-      position: relative;
-    }
+.slide {
+  width: 100%;
+  flex-shrink: 0;
+  position: relative;
+}
 
-    .slide img,
-    .slide video {
-      width: 100%;
-      height: auto;
-      display: block;
-      background: #000;
-    }
+.slide img,
+.slide video {
+  width: 100%;
+}
 
-    .nav-btn {
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      background: rgba(0,0,0,0.6);
-      color: white;
-      border: none;
-      font-size: 1.8em;
-      cursor: pointer;
-      padding: 0.2em 0.5em;
-      border-radius: 50%;
-    }
+.deleteMediaBtn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0,0,0,.6);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
 
-    #prevBtn { left: 10px; }
-    #nextBtn { right: 10px; }
+.nav-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
 
-    .deleteMediaBtn {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      background: rgba(0,0,0,0.6);
-      color: white;
-      border: none;
-      border-radius: 50%;
-      cursor: pointer;
-    }
+#prevBtn { left: 10px; }
+#nextBtn { right: 10px; }
 
-    /* ===== Content ===== */
-    #content {
-      border: 1px solid #ccc;
-      padding: 1em;
-      min-height: 200px;
-    }
+#content {
+  border: 1px solid #ccc;
+  padding: 1em;
+  min-height: 200px;
+}
 
-    button {
-      margin-top: 1em;
-    }
-  </style>
+#content img,
+#content video {
+  display: block;
+  margin: 15px auto;
+  max-width: 90%;
+  cursor: pointer;
+}
+
+button {
+  margin-top: 1em;
+}
+</style>
 </head>
 
 <body>
 
 <h1 id="pageTitle"></h1>
 
-<!-- ===== Slider ===== -->
 <div id="sliderContainer">
-  <div id="slider"></div>
+  <div id="imageSlider"></div>
   <button id="prevBtn" class="nav-btn">◀</button>
   <button id="nextBtn" class="nav-btn">▶</button>
 </div>
 
 <div id="editControls" style="display:none;">
-  <button onclick="addMedia()">Add Media</button>
+  <button onclick="addMediaToSlider()">Add Media</button>
+  <button onclick="insertInlineMedia()">Insert Inline</button>
 </div>
 
 <div id="content" contenteditable="false"></div>
@@ -120,29 +114,24 @@
 <p><a href="index.html">← Back</a></p>
 
 <script>
-/* ===== Config ===== */
 const cloudName = "dmnwfksrm";
 const uploadPreset = "unsigned";
 
 const title = new URLSearchParams(location.search).get("page");
 const isEditMode = localStorage.getItem("wikiEditMode") === "on";
 
-/* ===== Elements ===== */
-const sliderContainer = document.getElementById("sliderContainer");
-const slider = document.getElementById("slider");
-const content = document.getElementById("content");
-
-let media = JSON.parse(
-  localStorage.getItem("wikiPageMedia:" + title) || "[]"
-);
+let media = [];
 let index = 0;
 
-/* ===== Init ===== */
 pageTitle.textContent = title;
 document.title = title;
 
 content.innerHTML =
   localStorage.getItem("wikiPage:" + title) || "";
+
+media = JSON.parse(
+  localStorage.getItem("wikiPageMedia:" + title) || "[]"
+);
 
 if (media.length) renderSlider();
 
@@ -150,12 +139,12 @@ if (isEditMode) {
   content.contentEditable = true;
   editControls.style.display = "block";
   saveControls.style.display = "block";
+  enableInlineDelete();
 }
 
-/* ===== Slider ===== */
+/* ===== slider ===== */
 function renderSlider() {
-  slider.innerHTML = "";
-
+  imageSlider.innerHTML = "";
   media.forEach((url, i) => {
     const slide = document.createElement("div");
     slide.className = "slide";
@@ -177,7 +166,7 @@ function renderSlider() {
       slide.appendChild(del);
     }
 
-    slider.appendChild(slide);
+    imageSlider.appendChild(slide);
   });
 
   sliderContainer.style.display = "block";
@@ -186,18 +175,19 @@ function renderSlider() {
 
 function move(n) {
   index = (n + media.length) % media.length;
-  slider.style.transform = `translateX(-${index * 100}%)`;
+  imageSlider.style.transform = `translateX(-${index * 100}%)`;
 }
 
 prevBtn.onclick = () => move(index - 1);
 nextBtn.onclick = () => move(index + 1);
 
-/* ===== Delete media ===== */
+/* ===== delete slider media ===== */
 function deleteMedia(i) {
   if (!confirm("Delete this media?")) return;
   media.splice(i, 1);
   localStorage.setItem("wikiPageMedia:" + title, JSON.stringify(media));
-  media.length ? renderSlider() : sliderContainer.style.display = "none";
+  if (media.length) renderSlider();
+  else sliderContainer.style.display = "none";
 }
 
 /* ===== Cloudinary ===== */
@@ -211,34 +201,50 @@ function openUploader(cb) {
   });
 }
 
-function addMedia() {
+function addMediaToSlider() {
   openUploader(url => {
     media.push(url);
-    localStorage.setItem(
-      "wikiPageMedia:" + title,
-      JSON.stringify(media)
-    );
+    localStorage.setItem("wikiPageMedia:" + title, JSON.stringify(media));
     renderSlider();
   });
 }
 
-/* ===== Save ===== */
-function saveContent() {
-  localStorage.setItem("wikiPage:" + title, content.innerHTML);
-  alert("Saved");
+function insertInlineMedia() {
+  openUploader(url => {
+    const el = document.createElement(
+      url.match(/\.(mp4|mov|webm)$/) ? "video" : "img"
+    );
+    el.src = url;
+    if (el.tagName === "VIDEO") el.controls = true;
+    window.getSelection().getRangeAt(0).insertNode(el);
+    saveContent();
+    enableInlineDelete();
+  });
 }
 
-/* ===== Delete page (index.html と完全同期) ===== */
+/* ===== inline delete ===== */
+function enableInlineDelete() {
+  content.querySelectorAll("img, video").forEach(el => {
+    el.onclick = e => {
+      if (!isEditMode) return;
+      if (confirm("Delete this item?")) {
+        el.remove();
+        saveContent();
+      }
+      e.stopPropagation();
+    };
+  });
+}
+
+/* ===== save / delete page ===== */
+function saveContent() {
+  localStorage.setItem("wikiPage:" + title, content.innerHTML);
+}
+
 function deletePage() {
   if (!confirm("Delete this page completely?")) return;
-
   localStorage.removeItem("wikiPage:" + title);
   localStorage.removeItem("wikiPageMedia:" + title);
-
-  let pages = JSON.parse(localStorage.getItem("wikiPages") || "[]");
-  pages = pages.filter(p => p.title !== title);
-  localStorage.setItem("wikiPages", JSON.stringify(pages));
-
   location.href = "index.html";
 }
 </script>
