@@ -75,6 +75,14 @@ h1 {
   min-height: 200px;
 }
 
+#content img,
+#content video {
+  display: block;
+  margin: 15px auto;
+  max-width: 90%;
+  cursor: pointer;
+}
+
 button {
   margin-top: 1em;
 }
@@ -131,6 +139,7 @@ if (isEditMode) {
   content.contentEditable = true;
   editControls.style.display = "block";
   saveControls.style.display = "block";
+  enableInlineDelete();
 }
 
 /* ===== slider ===== */
@@ -172,7 +181,7 @@ function move(n) {
 prevBtn.onclick = () => move(index - 1);
 nextBtn.onclick = () => move(index + 1);
 
-/* ===== delete media ===== */
+/* ===== delete slider media ===== */
 function deleteMedia(i) {
   if (!confirm("Delete this media?")) return;
   media.splice(i, 1);
@@ -209,13 +218,27 @@ function insertInlineMedia() {
     if (el.tagName === "VIDEO") el.controls = true;
     window.getSelection().getRangeAt(0).insertNode(el);
     saveContent();
+    enableInlineDelete();
+  });
+}
+
+/* ===== inline delete ===== */
+function enableInlineDelete() {
+  content.querySelectorAll("img, video").forEach(el => {
+    el.onclick = e => {
+      if (!isEditMode) return;
+      if (confirm("Delete this item?")) {
+        el.remove();
+        saveContent();
+      }
+      e.stopPropagation();
+    };
   });
 }
 
 /* ===== save / delete page ===== */
 function saveContent() {
   localStorage.setItem("wikiPage:" + title, content.innerHTML);
-  alert("Saved");
 }
 
 function deletePage() {
