@@ -1,1 +1,10 @@
+[
+  {
+    "title": "Sample Page",
+    "content": "<p>This is a sample article.</p>",
+    "media": [
+      "https://res.cloudinary.com/dmnwfksrm/image/upload/sample.jpg"
+    ]
+  }
+]
 
