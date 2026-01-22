@@ -24,6 +24,12 @@ body {
 
 h1 {
   border-bottom: 2px solid #ccc;
+  outline: none;
+}
+
+h1[contenteditable="true"] {
+  cursor: text;
+  background: #f7f7f7;
 }
 
 #sliderContainer {
@@ -107,7 +113,7 @@ button {
 <div id="content" contenteditable="false"></div>
 
 <div id="saveControls" style="display:none;">
-  <button onclick="saveContent()">Save</button>
+  <button onclick="saveAll()">Save</button>
   <button onclick="deletePage()">🗑 Delete Page</button>
 </div>
 
@@ -117,7 +123,7 @@ button {
 const cloudName = "dmnwfksrm";
 const uploadPreset = "unsigned";
 
-const title = new URLSearchParams(location.search).get("page");
+let title = new URLSearchParams(location.search).get("page");
 const isEditMode = localStorage.getItem("wikiEditMode") === "on";
 
 let media = [];
@@ -136,6 +142,7 @@ media = JSON.parse(
 if (media.length) renderSlider();
 
 if (isEditMode) {
+  pageTitle.contentEditable = true;
   content.contentEditable = true;
   editControls.style.display = "block";
   saveControls.style.display = "block";
@@ -181,13 +188,11 @@ function move(n) {
 prevBtn.onclick = () => move(index - 1);
 nextBtn.onclick = () => move(index + 1);
 
-/* ===== delete slider media ===== */
 function deleteMedia(i) {
   if (!confirm("Delete this media?")) return;
   media.splice(i, 1);
   localStorage.setItem("wikiPageMedia:" + title, JSON.stringify(media));
-  if (media.length) renderSlider();
-  else sliderContainer.style.display = "none";
+  media.length ? renderSlider() : sliderContainer.style.display = "none";
 }
 
 /* ===== Cloudinary ===== */
@@ -217,28 +222,47 @@ function insertInlineMedia() {
     el.src = url;
     if (el.tagName === "VIDEO") el.controls = true;
     window.getSelection().getRangeAt(0).insertNode(el);
-    saveContent();
     enableInlineDelete();
   });
 }
 
-/* ===== inline delete ===== */
 function enableInlineDelete() {
   content.querySelectorAll("img, video").forEach(el => {
     el.onclick = e => {
       if (!isEditMode) return;
       if (confirm("Delete this item?")) {
         el.remove();
-        saveContent();
       }
       e.stopPropagation();
     };
   });
 }
 
-/* ===== save / delete page ===== */
-function saveContent() {
-  localStorage.setItem("wikiPage:" + title, content.innerHTML);
+/* ===== SAVE (title + content + media) ===== */
+function saveAll() {
+  const newTitle = pageTitle.textContent.trim();
+  if (!newTitle) return alert("Title cannot be empty");
+
+  if (newTitle !== title) {
+    localStorage.setItem("wikiPage:" + newTitle, content.innerHTML);
+    localStorage.setItem("wikiPageMedia:" + newTitle, JSON.stringify(media));
+    localStorage.removeItem("wikiPage:" + title);
+    localStorage.removeItem("wikiPageMedia:" + title);
+
+    let pages = JSON.parse(localStorage.getItem("wikiPages") || "[]");
+    pages = pages.map(p =>
+      p.title === title ? { title: newTitle } : p
+    );
+    localStorage.setItem("wikiPages", JSON.stringify(pages));
+
+    title = newTitle;
+    history.replaceState(null, "", "?page=" + encodeURIComponent(title));
+  } else {
+    localStorage.setItem("wikiPage:" + title, content.innerHTML);
+    localStorage.setItem("wikiPageMedia:" + title, JSON.stringify(media));
+  }
+
+  alert("Saved");
 }
 
 function deletePage() {
