@@ -1,7 +1,12 @@
-[
-  {
-    "title": "SAMPLE",
-    "content": "<p>Sample text</p>",
-    "media": []
-  }
-]
+{
+  "title": "When Production No Longer Needs Light",
+  "content": "When Production No Longer Needs Light\n\nDark factories—also called lights-out facilities-operate without human presence, illuminated only by the faint pulses of automation. In recent years, their expansion has accelerated across logistics and manufacturing networks, forming a silent architecture where production continues regardless of time, weather, or the biological limits once imposed by labor.\n\nAnalysts describe these spaces as highly efficient closed loops, but internal documents indicate something more austere: a system designed to erase the human body as a variable. What remains is a continuous sequence of mechanical decisions, recorded and archived with clinical precision.\n\nIn several sites, workers report that the factories \"feel awake\" even in total darkness—an impression dismissed as metaphor, yet persistently recurring in testimonies.\n\nThe absence of light is not symbolic; it is operational.\nSensors replace vision, and the factory behaves like a procedural organism, indifferent to witness or meaning.\n\nIts outputs enter global circulation without ever encountering a human gaze. What emerges is a production model that treats visibility as a liability and darkness as an asset. The facility becomes a sealed narrative-one that writes itself, endlessly, in the absence of its reader.",
+  "media": [
+    "https://res.cloudinary.com/dmnwfksrm/image/upload/v1769151709/sacrzcxxflqzopz7ncey.jpg",
+    "https://res.cloudinary.com/dmnwfksrm/video/upload/v1769151727/i8fd8o44ue4armhpfoqt.mov",
+    "https://res.cloudinary.com/dmnwfksrm/image/upload/v1769151733/omvvzk54jseurbb8tyho.jpg",
+    "https://res.cloudinary.com/dmnwfksrm/image/upload/v1769151733/hnxdl8xsnt3urumnk9cu.jpg",
+    "https://res.cloudinary.com/dmnwfksrm/image/upload/v1769151733/u61qks8xzyme9k4huttu.jpg",
+    "https://res.cloudinary.com/dmnwfksrm/image/upload/v1769151733/lmks6mbtw7ptw1vbhvst.jpg"
+  ]
+},
