@@ -1,13 +1,3 @@
-[
-  {
-    "title": "TEST PAGE",
-    "content": "<p>Hello world</p>",
-    "media": [
-      "https://res.cloudinary.com/xxx/image/upload/xxx.jpg"
-    ]
-  }
-]
-
 {
   "title": "When Production No Longer Needs Light",
   "content": "When Production No Longer Needs Light\n\nDark factories—also called lights-out facilities-operate without human presence, illuminated only by the faint pulses of automation. In recent years, their expansion has accelerated across logistics and manufacturing networks, forming a silent architecture where production continues regardless of time, weather, or the biological limits once imposed by labor.\n\nAnalysts describe these spaces as highly efficient closed loops, but internal documents indicate something more austere: a system designed to erase the human body as a variable. What remains is a continuous sequence of mechanical decisions, recorded and archived with clinical precision.\n\nIn several sites, workers report that the factories \"feel awake\" even in total darkness—an impression dismissed as metaphor, yet persistently recurring in testimonies.\n\nThe absence of light is not symbolic; it is operational.\nSensors replace vision, and the factory behaves like a procedural organism, indifferent to witness or meaning.\n\nIts outputs enter global circulation without ever encountering a human gaze. What emerges is a production model that treats visibility as a liability and darkness as an asset. The facility becomes a sealed narrative-one that writes itself, endlessly, in the absence of its reader.",
