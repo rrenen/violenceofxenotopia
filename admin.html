@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>V.O.X Admin</title>
+
+<script src="https://widget.cloudinary.com/v2.0/global/all.js"></script>
+
+<style>
+body {
+  font-family: sans-serif;
+  max-width: 700px;
+  margin: 40px auto;
+}
+
+input, textarea {
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 8px;
+}
+
+textarea {
+  height: 120px;
+}
+
+button {
+  padding: 10px 15px;
+  font-size: 1em;
+  margin-right: 10px;
+}
+
+pre {
+  background: #111;
+  color: #0f0;
+  padding: 15px;
+  white-space: pre-wrap;
+}
+
+.media-list div {
+  font-size: .9em;
+  margin-bottom: 5px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>V.O.X Admin</h1>
+
+<input id="title" placeholder="Page title">
+
+<textarea id="content" placeholder="HTML content (ex: <p>Paris 2025</p>)"></textarea>
+
+<h3>Media</h3>
+<button onclick="uploadMedia()">Upload media</button>
+
+<div class="media-list" id="mediaList"></div>
+
+<button onclick="generate()">Generate JSON</button>
+
+<h2>👇 Copy this into pages.json</h2>
+<pre id="output"></pre>
+
+<script>
+const cloudName = "dmnwfksrm";
+const uploadPreset = "unsigned";
+
+let media = [];
+
+/* ===== Cloudinary upload ===== */
+function uploadMedia() {
+  cloudinary.openUploadWidget({
+    cloudName,
+    uploadPreset,
+    resourceType: "auto"
+  }, (_, res) => {
+    if (res.event === "success") {
+      media.push(res.info.secure_url);
+      renderMedia();
+    }
+  });
+}
+
+function renderMedia() {
+  const list = document.getElementById("mediaList");
+  list.innerHTML = "";
+  media.forEach((url, i) => {
+    const div = document.createElement("div");
+    div.textContent = `${i + 1}. ${url}`;
+    list.appendChild(div);
+  });
+}
+
+/* ===== JSON generate ===== */
+function generate() {
+  const title = document.getElementById("title").value.trim();
+  const content = document.getElementById("content").value.trim();
+
+  if (!title) {
+    alert("Title required");
+    return;
+  }
+
+  const obj = {
+    title,
+    content,
+    media
+  };
+
+  document.getElementById("output").textContent =
+    JSON.stringify(obj, null, 2) + ",";
+}
+</script>
+
+</body>
+</html>
