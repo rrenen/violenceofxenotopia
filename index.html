@@ -60,13 +60,10 @@
     li {
       background: #f9f9f9;
       margin: 8px 0;
-      padding: 10px;
+      padding: 12px 14px;
       border-radius: 8px;
       border: 1px solid #ddd;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
+      transition: background .2s;
     }
 
     li:hover {
@@ -78,42 +75,6 @@
       font-weight: bold;
       text-decoration: none;
       font-size: 1.1em;
-    }
-
-    button {
-      font-family: inherit;
-      cursor: pointer;
-    }
-
-    .deleteBtn {
-      display: none;
-      background: transparent;
-      border: none;
-      font-size: 1.1em;
-    }
-
-    /* Hamburger */
-    #hamburgerMenu {
-      position: fixed;
-      top: 10px;
-      left: 40px;
-      z-index: 1000;
-    }
-
-    #menuContent {
-      position: fixed;
-      top: 0;
-      left: -250px;
-      width: 250px;
-      height: 100%;
-      background: #fff;
-      box-shadow: 2px 0 8px rgba(0,0,0,.2);
-      transition: left .3s;
-      padding: 20px;
-    }
-
-    #menuContent.show {
-      left: 0;
     }
 
     #founder {
@@ -136,25 +97,17 @@
 <body>
 
 <header>
-  <img src="VOX１.jpg">
+  <img src="VOX１.jpg" alt="V.O.X logo">
   <div>
     <h1>V.O.X</h1>
     <p class="subtitle">Violence of Xenotopia</p>
   </div>
 </header>
 
-<div id="hamburgerMenu">
-  <button id="hamburgerBtn">☰</button>
-  <div id="menuContent">
-    <button id="loginBtn">🔓 Log in</button>
-    <button id="logoutBtn" style="display:none;">🔒 Log out</button>
-  </div>
-</div>
-
 <ul id="pageList"></ul>
 
 <section id="founder">
-  <img src="リー.jpg" class="founder-img">
+  <img src="リー.jpg" class="founder-img" alt="Founder">
   <div>
     <h2>Founder</h2>
     <p>
@@ -165,24 +118,12 @@
 </section>
 
 <script>
-const EDIT_PASSWORD = "gooniesinshimokita";
-let isEditMode = localStorage.getItem("wikiEditMode") === "on";
-
-const list = document.getElementById("pageList");
-const loginBtn = document.getElementById("loginBtn");
-const logoutBtn = document.getElementById("logoutBtn");
-const hamburgerBtn = document.getElementById("hamburgerBtn");
-const menuContent = document.getElementById("menuContent");
-
-hamburgerBtn.onclick = () => {
-  menuContent.classList.toggle("show");
-};
-
-/* ===== JSON 読み込み ===== */
 fetch("data/pages.json")
   .then(res => res.json())
   .then(pages => {
+    const list = document.getElementById("pageList");
     list.innerHTML = "";
+
     pages.forEach(p => {
       const li = document.createElement("li");
 
@@ -190,48 +131,13 @@ fetch("data/pages.json")
       a.textContent = p.title;
       a.href = "page.html?page=" + encodeURIComponent(p.title);
 
-      const del = document.createElement("button");
-      del.textContent = "🗑";
-      del.className = "deleteBtn";
-      del.onclick = () => {
-        if (!confirm(`Delete "${p.title}"?\n\n※ pages.json を手動で更新してください`)) return;
-        li.remove();
-      };
-
       li.appendChild(a);
-      li.appendChild(del);
       list.appendChild(li);
     });
-
-    updateUI();
+  })
+  .catch(err => {
+    console.error(err);
   });
-
-function enterEditMode() {
-  const input = prompt("Enter the password:");
-  if (input === EDIT_PASSWORD) {
-    localStorage.setItem("wikiEditMode","on");
-    isEditMode = true;
-    updateUI();
-  }
-}
-
-function logoutEditMode() {
-  localStorage.removeItem("wikiEditMode");
-  isEditMode = false;
-  updateUI();
-}
-
-function updateUI() {
-  document.querySelectorAll(".deleteBtn").forEach(b => {
-    b.style.display = isEditMode ? "inline-block" : "none";
-  });
-  loginBtn.style.display = isEditMode ? "none" : "inline-block";
-  logoutBtn.style.display = isEditMode ? "inline-block" : "none";
-}
-
-loginBtn.onclick = enterEditMode;
-logoutBtn.onclick = logoutEditMode;
-updateUI();
 </script>
 
 </body>
