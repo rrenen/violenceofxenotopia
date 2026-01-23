@@ -20,17 +20,22 @@ body {
   font-family: var(--font-sans);
   margin: 40px auto;
   max-width: 700px;
+  line-height: 1.6;
+  color: #222;
 }
 
 h1 {
   border-bottom: 2px solid #ccc;
+  padding-bottom: .3em;
 }
 
+/* ===== slider ===== */
 #sliderContainer {
   position: relative;
   overflow: hidden;
   display: none;
   background: #000;
+  margin: 20px 0;
 }
 
 #imageSlider {
@@ -41,23 +46,30 @@ h1 {
 .slide {
   width: 100%;
   flex-shrink: 0;
-  position: relative;
 }
 
 .slide img,
 .slide video {
   width: 100%;
+  display: block;
 }
 
 .nav-btn {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
+  background: rgba(0,0,0,.6);
+  color: #fff;
+  border: none;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 1.2em;
 }
 
 #prevBtn { left: 10px; }
 #nextBtn { right: 10px; }
 
+/* ===== content ===== */
 #content {
   border: 1px solid #ccc;
   padding: 1em;
@@ -67,7 +79,7 @@ h1 {
 #content img,
 #content video {
   display: block;
-  margin: 15px auto;
+  margin: 20px auto;
   max-width: 90%;
 }
 </style>
@@ -88,6 +100,7 @@ h1 {
 <p><a href="index.html">← Back</a></p>
 
 <script>
+/* ===== 基本設定 ===== */
 const cloudName = "dmnwfksrm";
 
 let pages = [];
@@ -95,26 +108,29 @@ let pageData = null;
 let media = [];
 let index = 0;
 
-const title = new URLSearchParams(location.search).get("page");
+const params = new URLSearchParams(location.search);
+const titleParam = params.get("page");
 
-/* ===== JSON fetch ===== */
+/* ===== JSON から記事取得 ===== */
 fetch("data/pages.json")
   .then(res => res.json())
   .then(data => {
     pages = data;
-    pageData = pages.find(p => p.title === title);
-    if (!pageData) return;
+    pageData = pages.find(p => p.title === titleParam);
+    if (!pageData) {
+      document.getElementById("pageTitle").textContent = "Page not found";
+      return;
+    }
 
-    pageTitle.textContent = pageData.title;
     document.title = pageData.title;
-
+    pageTitle.textContent = pageData.title;
     content.innerHTML = pageData.content || "";
 
     media = pageData.media || [];
-    if (media.length) renderSlider();
+    if (media.length > 0) renderSlider();
   });
 
-/* ===== slider ===== */
+/* ===== slider 描画 ===== */
 function renderSlider() {
   imageSlider.innerHTML = "";
 
@@ -123,12 +139,16 @@ function renderSlider() {
     slide.className = "slide";
 
     const ext = url.split(".").pop().toLowerCase();
-    let el = ["mp4","mov","webm"].includes(ext)
-      ? document.createElement("video")
-      : document.createElement("img");
+    let el;
 
-    el.src = url;
-    if (el.tagName === "VIDEO") el.controls = true;
+    if (["mp4","mov","webm"].includes(ext)) {
+      el = document.createElement("video");
+      el.src = url;
+      el.controls = true;
+    } else {
+      el = document.createElement("img");
+      el.src = url;
+    }
 
     slide.appendChild(el);
     imageSlider.appendChild(slide);

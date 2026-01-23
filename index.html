@@ -25,10 +25,6 @@
       color: #222;
     }
 
-    button, input {
-      font-family: inherit;
-    }
-
     header {
       display: flex;
       align-items: center;
@@ -67,6 +63,10 @@
       padding: 10px;
       border-radius: 8px;
       border: 1px solid #ddd;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
     }
 
     li:hover {
@@ -80,8 +80,16 @@
       font-size: 1.1em;
     }
 
-    a:hover {
-      text-decoration: underline;
+    button {
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    .deleteBtn {
+      display: none;
+      background: transparent;
+      border: none;
+      font-size: 1.1em;
     }
 
     /* Hamburger */
@@ -90,12 +98,6 @@
       top: 10px;
       left: 40px;
       z-index: 1000;
-    }
-
-    #hamburgerBtn {
-      font-size: 1.5em;
-      padding: 8px 12px;
-      cursor: pointer;
     }
 
     #menuContent {
@@ -112,22 +114,6 @@
 
     #menuContent.show {
       left: 0;
-    }
-
-    #createSection {
-      display: none;
-      margin-top: 10px;
-    }
-
-    #loginBtn {
-      background: transparent;
-      padding: 0;
-    }
-
-    #loginBtn img {
-      width: 32px;
-      height: 32px;
-      display: block;
     }
 
     #founder {
@@ -150,7 +136,7 @@
 <body>
 
 <header>
-  <img src="VOX１.jpg" alt="V.O.X logo">
+  <img src="VOX１.jpg">
   <div>
     <h1>V.O.X</h1>
     <p class="subtitle">Violence of Xenotopia</p>
@@ -160,16 +146,8 @@
 <div id="hamburgerMenu">
   <button id="hamburgerBtn">☰</button>
   <div id="menuContent">
-    <button id="loginBtn">
-      <img src="images/login-icon.png" alt="Log in">
-    </button>
+    <button id="loginBtn">🔓 Log in</button>
     <button id="logoutBtn" style="display:none;">🔒 Log out</button>
-
-    <!-- 今は非表示（GitHub保存実装後に復活） -->
-    <div id="createSection">
-      <input id="newPageTitle" placeholder="New page title">
-      <button>Create</button>
-    </div>
   </div>
 </div>
 
@@ -195,31 +173,37 @@ const loginBtn = document.getElementById("loginBtn");
 const logoutBtn = document.getElementById("logoutBtn");
 const hamburgerBtn = document.getElementById("hamburgerBtn");
 const menuContent = document.getElementById("menuContent");
-const createSection = document.getElementById("createSection");
 
 hamburgerBtn.onclick = () => {
   menuContent.classList.toggle("show");
 };
 
-window.addEventListener("click", e => {
-  if (!menuContent.contains(e.target) && e.target !== hamburgerBtn) {
-    menuContent.classList.remove("show");
-  }
-});
-
-/* ===== GitHub JSON から読む ===== */
+/* ===== JSON 読み込み ===== */
 fetch("data/pages.json")
   .then(res => res.json())
   .then(pages => {
     list.innerHTML = "";
     pages.forEach(p => {
       const li = document.createElement("li");
+
       const a = document.createElement("a");
       a.textContent = p.title;
       a.href = "page.html?page=" + encodeURIComponent(p.title);
+
+      const del = document.createElement("button");
+      del.textContent = "🗑";
+      del.className = "deleteBtn";
+      del.onclick = () => {
+        if (!confirm(`Delete "${p.title}"?\n\n※ pages.json を手動で更新してください`)) return;
+        li.remove();
+      };
+
       li.appendChild(a);
+      li.appendChild(del);
       list.appendChild(li);
     });
+
+    updateUI();
   });
 
 function enterEditMode() {
@@ -238,7 +222,9 @@ function logoutEditMode() {
 }
 
 function updateUI() {
-  createSection.style.display = isEditMode ? "block" : "none";
+  document.querySelectorAll(".deleteBtn").forEach(b => {
+    b.style.display = isEditMode ? "inline-block" : "none";
+  });
   loginBtn.style.display = isEditMode ? "none" : "inline-block";
   logoutBtn.style.display = isEditMode ? "inline-block" : "none";
 }
